@@ -18,8 +18,9 @@ type User = {
 };
 
 function getCartKey() {
-  const storedUser = localStorage.getItem("user");
+  if (typeof window === "undefined") return "cart_guest";
 
+  const storedUser = localStorage.getItem("user");
   if (!storedUser) return "cart_guest";
 
   const user: User = JSON.parse(storedUser);
@@ -29,11 +30,13 @@ function getCartKey() {
 export default function CartPage() {
   const [cart, setCart] = useState<Product[]>([]);
 
-  function loadCart() {
+  useEffect(() => {
     const cartKey = getCartKey();
     const storedCart = JSON.parse(localStorage.getItem(cartKey) || "[]");
     setCart(storedCart);
-  }
+  }, []);
+
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
 
   function removeFromCart(id: string) {
     const cartKey = getCartKey();
@@ -42,23 +45,6 @@ export default function CartPage() {
     setCart(updatedCart);
     window.dispatchEvent(new Event("cartUpdated"));
   }
-
-  useEffect(() => {
-    loadCart();
-
-    const handleCartUpdated = () => loadCart();
-    const handleAuthChanged = () => loadCart();
-
-    window.addEventListener("cartUpdated", handleCartUpdated);
-    window.addEventListener("authChanged", handleAuthChanged);
-
-    return () => {
-      window.removeEventListener("cartUpdated", handleCartUpdated);
-      window.removeEventListener("authChanged", handleAuthChanged);
-    };
-  }, []);
-
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
 
   return (
     <main className="mx-auto max-w-5xl p-6">
@@ -100,9 +86,7 @@ export default function CartPage() {
 
           <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)]">
             <h2 className="text-xl font-semibold">Order Summary</h2>
-            <p className="mt-3 text-lg font-bold">
-              Total: ${total.toFixed(2)}
-            </p>
+            <p className="mt-3 text-lg font-bold">Total: ${total.toFixed(2)}</p>
           </div>
         </div>
       )}
