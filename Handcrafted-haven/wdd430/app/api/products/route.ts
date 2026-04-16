@@ -12,25 +12,31 @@ export async function GET(request: Request) {
     const category = searchParams.get("category");
     const min = searchParams.get("min");
     const max = searchParams.get("max");
+    const sellerId = searchParams.get("sellerId");
 
     const filter: any = {};
 
-    // 🔍 filtro por nome
+    // filtro por nome
     if (search) {
       filter.name = { $regex: search, $options: "i" };
     }
 
-    // 📂 filtro por categoria
+    // filtro por categoria
     if (category) {
       filter.category = { $regex: `^${category}$`, $options: "i" };
     }
 
-    // 💰 filtro por preço
+    // filtro por preço
     if (min || max) {
       filter.price = {};
 
       if (min) filter.price.$gte = Number(min);
       if (max) filter.price.$lte = Number(max);
+    }
+
+    // filtro por vendedor
+    if (sellerId) {
+      filter.sellerId = sellerId;
     }
 
     const products = await Product.find(filter).sort({ createdAt: -1 });
@@ -50,9 +56,9 @@ export async function POST(request: Request) {
     await connectToDatabase();
 
     const body = await request.json();
-    const { name, description, price, image, category } = body;
+    const { name, description, price, image, category, sellerId } = body;
 
-    if (!name || !description || !price || !image || !category) {
+    if (!name || !description || !price || !image || !category || !sellerId) {
       return NextResponse.json(
         { message: "All fields are required." },
         { status: 400 }
@@ -62,9 +68,10 @@ export async function POST(request: Request) {
     const newProduct = await Product.create({
       name,
       description,
-      price,
+      price: Number(price),
       image,
       category,
+      sellerId,
     });
 
     return NextResponse.json(newProduct, { status: 201 });

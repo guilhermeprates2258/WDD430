@@ -10,32 +10,31 @@ export interface IProduct {
   updatedAt?: Date;
 }
 
-const productSchema = new Schema<IProduct>(
+const ProductSchema = new Schema(
   {
     name: {
       type: String,
       required: true,
-      trim: true,
     },
     description: {
       type: String,
       required: true,
-      trim: true,
     },
     price: {
       type: Number,
       required: true,
-      min: 0,
     },
     image: {
       type: String,
       required: true,
-      trim: true,
     },
     category: {
       type: String,
       required: true,
-      trim: true,
+    },
+    sellerId: {
+      type: String,
+      required: true,
     },
   },
   {
@@ -43,6 +42,6 @@ const productSchema = new Schema<IProduct>(
   }
 );
 
-const Product = models.Product || model<IProduct>("Product", productSchema);
+const Product = models.Product || model("Product", ProductSchema);
 
 export default Product;
