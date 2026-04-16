@@ -1,92 +1,111 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 type Product = {
   _id: string;
   name: string;
   price: number;
   image: string;
+  category: string;
 };
+
+type User = {
+  _id: string;
+  name: string;
+  email: string;
+  role: "customer" | "seller";
+};
+
+function getCartKey() {
+  const storedUser = localStorage.getItem("user");
+
+  if (!storedUser) return "cart_guest";
+
+  const user: User = JSON.parse(storedUser);
+  return `cart_${user._id}`;
+}
 
 export default function CartPage() {
   const [cart, setCart] = useState<Product[]>([]);
 
-  useEffect(() => {
-    const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+  function loadCart() {
+    const cartKey = getCartKey();
+    const storedCart = JSON.parse(localStorage.getItem(cartKey) || "[]");
     setCart(storedCart);
-  }, []);
+  }
 
-  const removeFromCart = (id: string) => {
+  function removeFromCart(id: string) {
+    const cartKey = getCartKey();
     const updatedCart = cart.filter((item) => item._id !== id);
+    localStorage.setItem(cartKey, JSON.stringify(updatedCart));
     setCart(updatedCart);
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
     window.dispatchEvent(new Event("cartUpdated"));
-  };
+  }
+
+  useEffect(() => {
+    loadCart();
+
+    const handleCartUpdated = () => loadCart();
+    const handleAuthChanged = () => loadCart();
+
+    window.addEventListener("cartUpdated", handleCartUpdated);
+    window.addEventListener("authChanged", handleAuthChanged);
+
+    return () => {
+      window.removeEventListener("cartUpdated", handleCartUpdated);
+      window.removeEventListener("authChanged", handleAuthChanged);
+    };
+  }, []);
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-6 py-12">
-      <section className="mx-auto max-w-5xl">
-        <h1 className="text-3xl font-bold text-zinc-900 mb-6">
-          Your Cart
-        </h1>
+    <main className="mx-auto max-w-5xl p-6">
+      <h1 className="mb-6 text-3xl font-bold">Shopping Cart</h1>
 
-        {cart.length === 0 ? (
-          <div className="text-center">
-            <p className="text-zinc-600 mb-4">Your cart is empty</p>
-            <Link
-              href="/"
-              className="bg-zinc-900 text-white px-6 py-3 rounded-md"
+      {cart.length === 0 ? (
+        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface)] p-8 shadow-[var(--shadow-soft)]">
+          <p className="text-[var(--muted-foreground)]">Your cart is empty.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {cart.map((product) => (
+            <div
+              key={product._id}
+              className="flex flex-col gap-4 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)] md:flex-row md:items-center"
             >
-              Go Shopping
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-6">
-              {cart.map((item) => (
-                <div
-                  key={item._id}
-                  className="flex items-center gap-6 bg-white p-4 rounded-xl shadow-sm"
-                >
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="h-24 w-24 object-cover rounded-md"
-                  />
+              <img
+                src={product.image}
+                alt={`${product.name} product image`}
+                className="h-28 w-full rounded-xl object-cover md:w-32"
+              />
 
-                  <div className="flex-1">
-                    <h2 className="font-semibold">{item.name}</h2>
-                    <p className="text-zinc-600">
-                      ${item.price.toFixed(2)}
-                    </p>
-                  </div>
+              <div className="flex-1">
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {product.category}
+                </p>
+                <h2 className="text-xl font-semibold">{product.name}</h2>
+                <p className="mt-1 font-bold">${product.price.toFixed(2)}</p>
+              </div>
 
-                  <button
-                    onClick={() => removeFromCart(item._id)}
-                    className="text-red-500 hover:underline"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-10 flex justify-between items-center">
-              <h2 className="text-xl font-bold">
-                Total: ${total.toFixed(2)}
-              </h2>
-
-              <button className="bg-zinc-900 text-white px-6 py-3 rounded-md">
-                Checkout
+              <button
+                onClick={() => removeFromCart(product._id)}
+                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+              >
+                Remove
               </button>
             </div>
-          </>
-        )}
-      </section>
+          ))}
+
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)]">
+            <h2 className="text-xl font-semibold">Order Summary</h2>
+            <p className="mt-3 text-lg font-bold">
+              Total: ${total.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
